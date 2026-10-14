@@ -1,36 +1,35 @@
 import { useState } from 'react';
 import DeviationMap from './DeviationMap.jsx';
+import { buildDepthBars } from './geo3d.js';
 import { record, routeData } from './sampleData.js';
 
 const STATUS = {
-  pending_review: { label: 'Pending review', bg: '#fef3c7', fg: '#92400e', dot: '#f59e0b' },
-  approved: { label: 'Approved', bg: '#dcfce7', fg: '#166534', dot: '#16a34a' },
-  rejected: { label: 'Rejected', bg: '#fee2e2', fg: '#991b1b', dot: '#dc2626' },
-  needs_evidence: { label: 'More evidence requested', bg: '#dbeafe', fg: '#1e40af', dot: '#2563eb' },
+  pending_review: { label: 'Pending review', bg: '#ffe9cf', fg: '#8a4b0f', dot: '#f5a04b' },
+  approved: { label: 'Approved', bg: '#d3f2e2', fg: '#17613f', dot: '#3fae7a' },
+  rejected: { label: 'Rejected', bg: '#fbd9d9', fg: '#8a1f1f', dot: '#e26d6d' },
+  needs_evidence: { label: 'More evidence requested', bg: '#d9e8fb', fg: '#1f4a8a', dot: '#5b93e0' },
 };
 
-const THEME = {
-  page: '#f1f5f9',
-  panel: '#ffffff',
-  border: '#e2e8f0',
-  text: '#0f172a',
-  muted: '#64748b',
-  accent: '#0b2342',
-};
-
-// Change this to your teammate's backend address when it is ready.
+// Backend address (optional). Create react_dashboard/.env from .env.example.
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 
-const btn = (bg) => ({
-  background: bg,
-  color: '#fff',
-  border: 0,
-  padding: '10px 12px',
-  borderRadius: 8,
-  fontWeight: 600,
-  cursor: 'pointer',
-});
+const LAYERS = [
+  { key: 'planned', label: 'Planned (CAD)', color: '#1fa5c4' },
+  { key: 'actual', label: 'Actual (as built)', color: '#2563eb' },
+  { key: 'deviation', label: 'Deviation', color: '#ef4444' },
+  { key: 'survey', label: 'Survey points', color: '#fb923c' },
+  { key: 'depth', label: '3D depth bars', color: '#7aa8f5' },
+];
+
+const QUICK_COMMENTS = [
+  'Route matches the design',
+  'Depth label missing in video',
+  'Video or photo is unclear',
+  'GNSS accuracy is too low',
+];
+
+const depthBars = buildDepthBars(routeData, record.plannedDepthM, record.actualDepthM);
 
 export default function App() {
   const [status, setStatus] = useState('pending_review');
@@ -40,11 +39,21 @@ export default function App() {
   const [log, setLog] = useState([
     { at: new Date().toISOString(), msg: 'Record submitted by field crew (mock)' },
   ]);
+  const [visible, setVisible] = useState({
+    planned: true,
+    actual: true,
+    deviation: true,
+    survey: true,
+    depth: true,
+  });
+  const [is3d, setIs3d] = useState(true);
+  const [resetToken, setResetToken] = useState(0);
 
   const locked = status === 'approved' || status === 'rejected';
+  const s = STATUS[status];
+  const depthDiff = (record.actualDepthM - record.plannedDepthM).toFixed(1);
 
-  const addLog = (msg) =>
-    setLog((l) => [{ at: new Date().toISOString(), msg }, ...l]);
+  const addLog = (msg) => setLog((l) => [{ at: new Date().toISOString(), msg }, ...l]);
 
   const decide = async (next) => {
     setError('');
@@ -63,7 +72,7 @@ export default function App() {
         if (!res.ok) throw new Error('Server answered ' + res.status);
       }
       setStatus(next);
-      addLog(STATUS[next].label + (comment ? ': ' + comment : ''));
+      addLog(STATUS[next].label + (comment.trim() ? ': ' + comment.trim() : ''));
       setComment('');
     } catch (e) {
       setError('Could not save decision: ' + e.message);
@@ -73,70 +82,73 @@ export default function App() {
   };
 
   const reopen = () => {
+    setError('');
     setStatus('pending_review');
     addLog('Reopened for review');
   };
 
-  const s = STATUS[status];
+  const addQuick = (text) => {
+    if (locked) return;
+    setComment((c) => (c.trim() ? c.trim() + '. ' + text : text));
+  };
+
+  const toggleLayer = (key) => setVisible((v) => ({ ...v, [key]: !v[key] }));
+
+  const downloadReview = () => {
+    const blob = new Blob([JSON.stringify({ record, status, auditLog: log }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = record.id + '-review.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        fontFamily: 'system-ui, sans-serif',
-        background: THEME.page,
-        color: THEME.text,
-      }}
-    >
-      <aside
-        style={{
-          width: 340,
-          padding: 16,
-          overflowY: 'auto',
-          background: THEME.panel,
-          borderRight: '1px solid ' + THEME.border,
-          boxSizing: 'border-box',
-        }}
-      >
-        <h2 style={{ marginTop: 0, color: THEME.accent }}>GeoTrace review</h2>
-        <p style={{ color: THEME.muted, marginTop: -8 }}>Sample data, not a real record</p>
-
-        <div
-          style={{
-            marginBottom: 14,
-            lineHeight: 1.7,
-            padding: 12,
-            background: '#f8fafc',
-            border: '1px solid ' + THEME.border,
-            borderRadius: 8,
-          }}
-        >
+    <div className="layout">
+      <aside className="panel">
+        <div className="brand">
+          <span className="brand-dot" />
           <div>
-            <b>{record.id}</b> · {record.utility}
+            <h1>GeoTrace review</h1>
+            <p className="muted">Sample data, not a real record</p>
           </div>
-          <div>{record.site}</div>
-          <div>Planned depth: {record.plannedDepthM} m</div>
-          <div>Actual depth: {record.actualDepthM} m</div>
-          <div>Max deviation: {record.maxDeviationM} m</div>
         </div>
 
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: s.bg,
-            color: s.fg,
-            padding: '4px 12px',
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 600,
-          }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: 999, background: s.dot }} />
-          {s.label}
-        </span>
+        <section className="card">
+          <div className="card-head">
+            <b>{record.id}</b>
+            <span className="tag">{record.utility}</span>
+          </div>
+          <div className="muted small">{record.site}</div>
+          <div className="stats">
+            <div className="stat">
+              <span>Planned depth</span>
+              <b>{record.plannedDepthM} m</b>
+            </div>
+            <div className="stat">
+              <span>Actual depth</span>
+              <b>{record.actualDepthM} m</b>
+            </div>
+            <div className="stat">
+              <span>Max deviation</span>
+              <b>{record.maxDeviationM} m</b>
+            </div>
+            <div className="stat">
+              <span>Depth difference</span>
+              <b>+{depthDiff} m</b>
+            </div>
+          </div>
+        </section>
+
+        <div className="status-row">
+          <span className="badge" style={{ background: s.bg, color: s.fg }}>
+            <span className="dot" style={{ background: s.dot }} />
+            {s.label}
+          </span>
+        </div>
 
         <textarea
           value={comment}
@@ -144,58 +156,74 @@ export default function App() {
           placeholder="Reviewer comment (required for reject / more evidence)"
           disabled={locked}
           rows={3}
-          style={{
-            width: '100%',
-            marginTop: 14,
-            boxSizing: 'border-box',
-            padding: 8,
-            borderRadius: 8,
-            border: '1px solid #cbd5e1',
-            background: '#fff',
-            color: THEME.text,
-            fontFamily: 'inherit',
-          }}
         />
+        <div className="chips">
+          {QUICK_COMMENTS.map((q) => (
+            <button key={q} className="chip" disabled={locked} onClick={() => addQuick(q)}>
+              {q}
+            </button>
+          ))}
+        </div>
 
-        {error && <div style={{ color: '#b91c1c', marginTop: 8, fontSize: 13 }}>{error}</div>}
+        {error && <div className="error">{error}</div>}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
-          <button disabled={locked || saving} onClick={() => decide('approved')} style={btn('#16a34a')}>
+        <div className="actions">
+          <button className="btn approve" disabled={locked || saving} onClick={() => decide('approved')}>
             Approve
           </button>
-          <button disabled={locked || saving} onClick={() => decide('needs_evidence')} style={btn('#2563eb')}>
+          <button className="btn evidence" disabled={locked || saving} onClick={() => decide('needs_evidence')}>
             Request more evidence
           </button>
-          <button disabled={locked || saving} onClick={() => decide('rejected')} style={btn('#dc2626')}>
+          <button className="btn reject" disabled={locked || saving} onClick={() => decide('rejected')}>
             Reject
           </button>
           {locked && (
-            <button onClick={reopen} style={btn('#475569')}>
+            <button className="btn reopen" onClick={reopen}>
               Reopen
             </button>
           )}
         </div>
 
-        <h3 style={{ color: THEME.accent }}>Audit log</h3>
-        <ul style={{ paddingLeft: 16, fontSize: 13, color: THEME.text }}>
+        <h3>Audit log</h3>
+        <ul className="log">
           {log.map((e, i) => (
-            <li key={i} style={{ marginBottom: 4 }}>
-              <span style={{ color: THEME.muted }}>{e.at.slice(11, 19)}</span> {e.msg}
+            <li key={i}>
+              <span className="muted">{e.at.slice(11, 19)}</span> {e.msg}
             </li>
           ))}
         </ul>
-
-        <h3 style={{ color: THEME.accent }}>Legend</h3>
-        <div style={{ fontSize: 13, lineHeight: 1.9 }}>
-          <div><span style={{ color: '#0891b2', fontWeight: 600 }}>- - Planned (CAD)</span></div>
-          <div><span style={{ color: '#2563eb', fontWeight: 600 }}>━━ Actual (as built)</span></div>
-          <div><span style={{ color: '#dc2626', fontWeight: 600 }}>━━ Deviation</span></div>
-          <div><span style={{ color: '#ea580c', fontWeight: 600 }}>● Survey point</span></div>
-        </div>
+        <button className="btn ghost" onClick={downloadReview}>
+          Download review as JSON
+        </button>
       </aside>
 
-      <main style={{ flex: 1 }}>
-        <DeviationMap data={routeData} />
+      <main className="mapwrap">
+        <DeviationMap
+          data={routeData}
+          depthBars={depthBars}
+          visible={visible}
+          is3d={is3d}
+          resetToken={resetToken}
+        />
+        <div className="toolbar">
+          <div className="toolbar-row">
+            {LAYERS.map((l) => (
+              <label key={l.key} className={'layer-chip' + (visible[l.key] ? ' on' : '')}>
+                <input type="checkbox" checked={visible[l.key]} onChange={() => toggleLayer(l.key)} />
+                <span className="swatch" style={{ background: l.color }} />
+                {l.label}
+              </label>
+            ))}
+          </div>
+          <div className="toolbar-row">
+            <button className="tool-btn" onClick={() => setIs3d((v) => !v)}>
+              {is3d ? 'Switch to 2D view' : 'Switch to 3D view'}
+            </button>
+            <button className="tool-btn" onClick={() => setResetToken((t) => t + 1)}>
+              Reset view
+            </button>
+          </div>
+        </div>
       </main>
     </div>
   );

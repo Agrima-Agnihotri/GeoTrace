@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
-/// Local SQLite queue. Every captured clip is stored here first,
-/// then uploaded whenever the network is available.
+/// Persistent local queue (SQLite). Every clip is stored here first and stays
+/// until it has been uploaded, even after the app is closed.
 class QueueDb {
   static Database? _db;
+
+  /// Number of clips waiting for upload. The UI listens to this.
+  static final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
 
   static Future<Database> get _database async {
     _db ??= await openDatabase(
@@ -24,9 +28,16 @@ class QueueDb {
     return _db!;
   }
 
+  static Future<void> refreshCount() async {
+    final db = await _database;
+    final rows = await db.rawQuery("SELECT COUNT(*) AS c FROM queue WHERE status = 'pending'");
+    pendingCount.value = (rows.first['c'] as int?) ?? 0;
+  }
+
   static Future<void> insert(Map<String, Object?> row) async {
     final db = await _database;
     await db.insert('queue', row);
+    await refreshCount();
   }
 
   static Future<List<Map<String, Object?>>> pending() async {
@@ -34,14 +45,10 @@ class QueueDb {
     return db.query('queue', where: "status = 'pending'", orderBy: 'captured_at');
   }
 
-  static Future<int> pendingCount() async {
-    final rows = await pending();
-    return rows.length;
-  }
-
   static Future<void> markUploaded(String id) async {
     final db = await _database;
     await db.update('queue', {'status': 'uploaded'}, where: 'id = ?', whereArgs: [id]);
+    await refreshCount();
   }
 
   static Future<void> bumpAttempts(String id) async {
