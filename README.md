@@ -220,6 +220,34 @@ GeoTrace GIS is designed around four interconnected layers.
 
 The modular architecture is intended to separate field data collection, processing, record management, and end-user visualization so individual components can evolve independently.
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph Field["Field capture: flutter_app (built)"]
+    CAM["Camera video"] --> CAP["Capture screen"]
+    GNSS["GNSS position stream"] --> CAP
+    CAP --> HASH["SHA-256 hash"]
+    HASH --> Q[("SQLite offline queue")]
+    Q --> SYNC["Sync service"]
+  end
+
+  SYNC -->|"multipart upload, proposed API"| API["FastAPI backend (planned)"]
+  API --> DB[("PostgreSQL + PostGIS (planned)")]
+  API --> AI["AI detection + photogrammetry (planned)"]
+  AI --> DB
+
+  subgraph Web["Review dashboard: react_dashboard (built)"]
+    REVIEW["React + MapLibre"]
+  end
+
+  DB -->|"records, deviations"| REVIEW
+  REVIEW -->|"review decision"| API
+  DB -.->|"stored records"| AR["AR view: ARCore overlay (prototype)"]
+```
+
+More diagrams (capture sequence, AR pipeline, review workflow) are in [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md).
+
 ---
 
 ## Technology Stack
