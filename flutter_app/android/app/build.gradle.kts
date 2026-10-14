@@ -1,3 +1,4 @@
+System.setProperty("android.ndkDirectory", "C:\\Users\\Acer\\AppData\\Local\\Android\\Sdk\\ndk\\28.2.13676358-2")
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -7,7 +8,7 @@ plugins {
 android {
     namespace = "com.geotrace.geotrace_capture"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358-2"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
