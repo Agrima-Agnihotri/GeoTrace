@@ -1,0 +1,11 @@
+{
+  "_note": "MOCK pipe used by the AR prototype. Vertices are [lat, lng].",
+  "utility": "Water",
+  "depthM": -1.2,
+  "vertices": [
+    [26.40000, 75.87000],
+    [26.40002, 75.87000],
+    [26.40004, 75.87002],
+    [26.40006, 75.87002]
+  ]
+}

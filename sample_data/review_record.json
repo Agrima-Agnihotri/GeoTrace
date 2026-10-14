@@ -1,0 +1,10 @@
+{
+  "_note": "MOCK record shown in the review dashboard.",
+  "id": "REC-0001",
+  "utility": "Water",
+  "site": "Sample site (mock data)",
+  "plannedDepthM": 1.2,
+  "actualDepthM": 1.6,
+  "maxDeviationM": 6.0,
+  "status": "pending_review"
+}

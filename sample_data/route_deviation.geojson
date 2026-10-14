@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "kind": "planned" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[75.87, 26.4], [75.87, 26.4004]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "kind": "actual" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [75.87, 26.4],
+          [75.87, 26.40015],
+          [75.87006, 26.4002],
+          [75.87, 26.40025],
+          [75.87, 26.4004]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "kind": "deviation" },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[75.87, 26.40015], [75.87006, 26.4002], [75.87, 26.40025]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "kind": "survey", "label": "S1" },
+      "geometry": { "type": "Point", "coordinates": [75.87, 26.40015] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "kind": "survey", "label": "S2" },
+      "geometry": { "type": "Point", "coordinates": [75.87006, 26.4002] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "kind": "survey", "label": "S3" },
+      "geometry": { "type": "Point", "coordinates": [75.87, 26.40025] }
+    }
+  ]
+}

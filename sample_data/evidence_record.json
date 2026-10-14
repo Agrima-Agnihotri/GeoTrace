@@ -1,0 +1,15 @@
+{
+  "_note": "MOCK record. sha256 is the SHA-256 of sample_payload_text, not of a real video.",
+  "id": "3f2b8c1e-5a4d-4e0b-9c7a-1d2e3f4a5b6c",
+  "video_path": "evidence_3f2b8c1e-5a4d-4e0b-9c7a-1d2e3f4a5b6c.mp4",
+  "sample_payload_text": "geotrace-sample-evidence",
+  "sha256": "0f4f79879f0d70b7b60163a0ef3ed3fe99defd835e12f394cd440c02a2d2862a",
+  "captured_at": "2026-10-14T08:00:30.000Z",
+  "status": "pending",
+  "attempts": 0,
+  "track": [
+    { "lat": 26.40000, "lng": 75.87000, "alt": 412.3, "acc_m": 3.2, "t": "2026-10-14T08:00:00.000Z" },
+    { "lat": 26.40015, "lng": 75.87000, "alt": 412.4, "acc_m": 3.0, "t": "2026-10-14T08:00:12.000Z" },
+    { "lat": 26.40025, "lng": 75.87000, "alt": 412.5, "acc_m": 2.8, "t": "2026-10-14T08:00:25.000Z" }
+  ]
+}
