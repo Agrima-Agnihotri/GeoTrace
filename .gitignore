@@ -1,5 +1,22 @@
+<<<<<<< HEAD
+# Root .gitignore for GeoTrace GIS
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+=======
 __pycache__/
 *.pyc
 .DS_Store
 .vscode/
 .env
+>>>>>>> origin/main
